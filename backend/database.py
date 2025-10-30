@@ -1,38 +1,95 @@
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, JSON
-from sqlalchemy.orm import declarative_base, sessionmaker
-import datetime
+from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean, DateTime, ForeignKey
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, relationship
+from datetime import datetime
 import os
 from dotenv import load_dotenv
 
-
 load_dotenv()
-DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///./ai_curator.db')
 
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./linkedin_event_curator.db")
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False} if DATABASE_URL.startswith('sqlite') else {})
-SessionLocal = sessionmaker(bind=engine)
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
-class AuditLog(Base):
-__tablename__ = 'audit_logs'
-id = Column(Integer, primary_key=True, index=True)
-user_id = Column(String, nullable=True)
-timestamp = Column(DateTime, default=datetime.datetime.utcnow)
-num_photos_uploaded = Column(Integer)
-num_photos_selected = Column(Integer)
-linkedin_post_id = Column(String, nullable=True)
-status = Column(String)
-metadata = Column(JSON, nullable=True)
+class Event(Base):
+    """Represents an event/upload session"""
+    __tablename__ = "events"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, default="Untitled Event")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    user_email = Column(String, nullable=True)
+    total_uploaded = Column(Integer, default=0)
+    total_selected = Column(Integer, default=0)
+    
+    images = relationship("Image", back_populates="event")
+    posts = relationship("Post", back_populates="event")
+
+
+class Image(Base):
+    """Represents an uploaded/processed image"""
+    __tablename__ = "images"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    event_id = Column(Integer, ForeignKey("events.id"))
+    filename = Column(String)
+    filepath = Column(String)
+    uploaded_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Quality metrics
+    quality_score = Column(Float, default=0.0)
+    sharpness_score = Column(Float, default=0.0)
+    brightness_score = Column(Float, default=0.0)
+    contrast_score = Column(Float, default=0.0)
+    is_blur = Column(Boolean, default=False)
+    is_duplicate = Column(Boolean, default=False)
+    
+    # Selection status
+    is_selected = Column(Boolean, default=False)
+    is_posted = Column(Boolean, default=False)
+    
+    event = relationship("Event", back_populates="images")
+
+
+class Post(Base):
+    """Audit log for LinkedIn posts"""
+    __tablename__ = "posts"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    event_id = Column(Integer, ForeignKey("events.id"))
+    posted_at = Column(DateTime, default=datetime.utcnow)
+    linkedin_post_id = Column(String, nullable=True)
+    num_images = Column(Integer, default=0)
+    status = Column(String, default="pending")  # pending, success, failed
+    error_message = Column(String, nullable=True)
+    
+    event = relationship("Event", back_populates="posts")
+
+
+class LinkedInToken(Base):
+    """Stores LinkedIn OAuth tokens"""
+    __tablename__ = "linkedin_tokens"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_email = Column(String, unique=True)
+    access_token = Column(String)
+    refresh_token = Column(String, nullable=True)
+    expires_at = Column(DateTime)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 
 def init_db():
-Base.metadata.create_all(bind=engine)
+    """Initialize database tables"""
+    Base.metadata.create_all(bind=engine)
 
 
-def create_audit_log(db_session, **kwargs):
-log = AuditLog(**kwargs)
-db_session.add(log)
-db_session.commit()
-db_session.refresh(log)
-return log
+def get_db():
+    """Dependency for getting database session"""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
