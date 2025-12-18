@@ -2,11 +2,11 @@
 
 An intelligent web application that automatically curates, enhances, and posts event photos to LinkedIn, saving professionals hours of manual work.
 
-## 🎯 Problem Statement
+## Problem Statement
 
 Professionals spend 2-3 hours per event manually selecting, editing, and posting photos to LinkedIn. This application automates the entire process using AI-powered quality assessment, resulting in consistent, professional content sharing.
 
-## ✨ Key Features
+## Key Features
 
 - **AI Quality Assessment**: Automatically evaluates images based on sharpness, composition, and lighting
 - **Duplicate & Blur Removal**: Filters out low-quality and redundant images
@@ -15,7 +15,7 @@ Professionals spend 2-3 hours per event manually selecting, editing, and posting
 - **LinkedIn Integration**: Direct posting to your personal LinkedIn profile
 - **Audit Logging**: Tracks all activities for accountability
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
