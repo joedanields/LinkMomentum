@@ -24,6 +24,9 @@ class Event(Base):
     user_email = Column(String, nullable=True)
     total_uploaded = Column(Integer, default=0)
     total_selected = Column(Integer, default=0)
+    # processing status: pending, processing, completed, failed
+    processing_status = Column(String, default="pending")
+    processed_at = Column(DateTime, nullable=True)
     
     images = relationship("Image", back_populates="event")
     posts = relationship("Post", back_populates="event")

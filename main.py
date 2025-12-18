@@ -19,108 +19,18 @@ load_dotenv()
 # Initialize FastAPI app
 app = FastAPI(title="LinkedIn Event Photo Curator", version="1.0.0")
 
-# Create necessary directories
-UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
-STATIC_DIR = "static"
-TEMPLATE_DIR = "templates"
+# Include API routers
+from app.api import upload as upload_router
+from app.api import auth as auth_router
+from app.api import images as images_router
+from app.api import posts as posts_router
+from app.api import logs as logs_router
 
-# Mount static files
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
-
-# Templates
-templates = Jinja2Templates(directory=TEMPLATE_DIR)
-
-# Services (lazy singletons from app.core)
-image_processor = image_processor()
-linkedin_api = linkedin_api()
-
-# Initialize database on startup
-@app.on_event("startup")
-def startup_event():
-    print("\n" + "="*70)
-    print("🎯 LinkedIn Event Photo Curator - AI-Powered Content Generation")
-    print("="*70)
-    print("\n📦 Initializing application...")
-    
-    init_db()
-    print("   ✅ Database initialized")
-    print(f"   ✅ Upload directory: {UPLOAD_DIR}")
-    print("   ✅ AI engine ready")
-    print("   ✅ LinkedIn API configured")
-    
-    print("\n" + "="*70)
-    print("🚀 SERVER READY!")
-    print("="*70)
-    print(f"\n   🌐 Open your browser to: http://localhost:8000")
-    print(f"   📖 Documentation: README.md")
-    print(f"   🆘 Need help? Check SETUP_GUIDE.md")
-    print("\n" + "="*70)
-    print("💡 Tips:")
-    print("   • Connect LinkedIn before uploading photos")
-    print("   • Upload 10-15 images for best results")
-    print("   • AI selects best 10 images automatically")
-    print("   • Press Ctrl+C to stop the server")
-    print("="*70 + "\n")
-
-
-# ============= Frontend Routes =============
-
-@app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
-    """Serve main application page"""
-    return templates.TemplateResponse("index.html", {"request": request})
-
-
-# ============= Upload & Processing Endpoints =============
-
-@app.post("/api/upload")
-async def upload_images(
-    files: List[UploadFile] = File(...),
-    db: Session = Depends(get_db)
-):
-    """Upload and process event images"""
-    
-    if not files:
-        raise HTTPException(status_code=400, detail="No files uploaded")
-    
-    if len(files) > 20:
-        raise HTTPException(status_code=400, detail="Maximum 20 files allowed")
-    
-    # Create new event
-    event = Event(
-        name=f"Event {datetime.now().strftime('%Y%m%d_%H%M%S')}",
-        total_uploaded=len(files)
-    )
-    db.add(event)
-    db.commit()
-    db.refresh(event)
-    
-    # Create event directory
-    event_dir = os.path.join(UPLOAD_DIR, f"event_{event.id}")
-    os.makedirs(event_dir, exist_ok=True)
-    
-    # Save uploaded files
-    saved_files = []
-    for file in files:
-        # Validate file type
-        if not file.content_type.startswith("image/"):
-            continue
-        
-        # Generate unique filename
-        file_ext = os.path.splitext(file.filename)[1]
-        unique_filename = f"{uuid.uuid4()}{file_ext}"
-        file_path = os.path.join(event_dir, unique_filename)
-        
-        # Save file
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        
-        saved_files.append({
-            "filename": file.filename,
-            "unique_filename": unique_filename,
-            "path": file_path
-        })
+app.include_router(upload_router.router, prefix="/api")
+app.include_router(auth_router.router, prefix="/api")
+app.include_router(images_router.router, prefix="/api")
+app.include_router(posts_router.router, prefix="/api")
+app.include_router(logs_router.router, prefix="/api")
     
     # Process images with AI
     image_paths = [f["path"] for f in saved_files]

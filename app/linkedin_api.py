@@ -68,6 +68,32 @@ class LinkedInAPI:
             "expires_at": expires_at,
             "expires_in": expires_in
         }
+
+    def refresh_token(self, refresh_token: str) -> Dict:
+        """
+        Attempt to refresh an access token using a refresh token.
+        Returns new token dict similar to exchange_code_for_token.
+        """
+        data = {
+            "grant_type": "refresh_token",
+            "refresh_token": refresh_token,
+            "client_id": self.client_id,
+            "client_secret": self.client_secret,
+        }
+
+        response = requests.post(self.token_url, data=data)
+        response.raise_for_status()
+        token_data = response.json()
+
+        expires_in = token_data.get("expires_in", 5184000)
+        expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
+
+        return {
+            "access_token": token_data["access_token"],
+            "expires_at": expires_at,
+            "expires_in": expires_in,
+            "refresh_token": token_data.get("refresh_token")
+        }
     
     def get_user_info(self, access_token: str) -> Dict:
         """
