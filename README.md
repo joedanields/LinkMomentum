@@ -1,4 +1,4 @@
-# Link MOMENTUM :AI-Driven LinkedIn Event Content Generation
+# LINK MOMENTUM :AI-Driven LinkedIn Event Content Generation
 
 An intelligent web application that automatically curates, enhances, and posts event photos to LinkedIn, saving professionals hours of manual work.
 
