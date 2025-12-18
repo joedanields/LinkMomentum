@@ -61,142 +61,155 @@ copy .env.example .env
 4. In the **"Auth"** tab:
    - Add Redirect URL: `http://localhost:8000/auth/linkedin/callback`
 5. In the **"Products"** tab:
-   - Request access to **"Share on LinkedIn"** and **"Sign In with LinkedIn"**
-6. Copy your **Client ID** and **Client Secret** to `.env` file
+   # AI-Driven LinkedIn Event Content Generation
 
-### Running the Application
+   This repository contains an application that automates selection, processing, and
+   posting of event photographs to LinkedIn. The service applies objective image
+   quality metrics and configurable filters to produce a consistent set of
+   publishable assets, and integrates with LinkedIn via OAuth for authenticated
+   posting.
 
-1. Start the FastAPI server:
-```bash
-python main.py
-```
+   Table of contents
+   - Project overview
+   - Features
+   - Architecture and tech stack
+   - Quickstart (local and Docker)
+   - Configuration
+   - API reference
+   - Logging, testing, and troubleshooting
+   - Contributing and license
 
-2. Open your browser and navigate to:
-```
-http://localhost:8000
-```
+   Project overview
+   ----------------
+   The application is intended to accelerate event photo workflows by:
+   - Removing low-quality images (e.g., blurred or corrupted files)
+   - Identifying and de-duplicating similar images
+   - Scoring and ranking images using deterministic and AI-assisted metrics
+   - Exposing a lightweight UI and API for review and publishing
 
-3. The application will be ready to use!
+   Key features
+   ------------
+   - Image quality assessment (sharpness, exposure, contrast, composition)
+   - Duplicate detection using perceptual hashing
+   - Configurable selection thresholds and output limits
+   - Manual review and override for final selection
+   - LinkedIn OAuth 2.0 integration for posting
+   - Audit logging for traceability
 
-## 📖 How to Use
+   Architecture and technology stack
+   ---------------------------------
+   - Backend: FastAPI (Python)
+   - Image processing: OpenCV, Pillow, scikit-image
+   - Database: SQLite with SQLAlchemy (default, can be swapped)
+   - Task queue: Celery (optional; see `celery_app.py`)
+   - Frontend: static HTML/CSS and vanilla JavaScript served from `templates/` and `static/`
 
-1. **Upload Photos**: Click the upload area and select 10-15 event photos
-2. **AI Processing**: The system automatically:
-   - Analyzes image quality (sharpness, lighting, composition)
-   - Removes blurry and duplicate images
-   - Selects the top 10 images
-3. **Review & Override**: Manually deselect/reselect images if needed
-4. **Connect LinkedIn**: Authorize the app to post on your behalf
-5. **Post**: Click "Post to LinkedIn" to share selected images
+   Quickstart
+   ----------
+   Prerequisites: Python 3.9+ and access to a LinkedIn developer application.
 
-## 🏗️ Project Structure
+   Local development
 
-```
-AI-Driven-LinkedIn-Event-Content-Generation/
-├── backend/
-│   ├── database.py          # Database setup and models
-│   ├── image_processor.py   # AI quality assessment & processing
-│   ├── linkedin_api.py      # LinkedIn OAuth and posting
-│   └── models.py            # SQLAlchemy models
-├── static/
-│   ├── css/
-│   │   └── styles.css       # Frontend styling
-│   └── js/
-│       └── app.js           # Frontend logic
-├── templates/
-│   └── index.html           # Main web interface
-├── uploads/                 # Uploaded images (auto-created)
-├── main.py                  # FastAPI application
-├── requirements.txt         # Python dependencies
-├── .env.example             # Environment variables template
-└── README.md               # This file
-```
+   1. Clone the repository and change to the project directory:
 
-## 🔧 Configuration
+   ```powershell
+   git clone https://github.com/mourishantony/AI-Driven-LinkedIn-Event-Content-Generation.git
+   cd AI-Driven-LinkedIn-Event-Content-Generation
+   ```
 
-Edit `.env` file to customize:
+   2. Create and activate a virtual environment:
 
-- `QUALITY_THRESHOLD`: Minimum quality score (0-1, default: 0.6)
-- `MAX_SELECTED_IMAGES`: Number of images to select (default: 10)
-- `BLUR_THRESHOLD`: Blur detection sensitivity (lower = stricter)
-- `DUPLICATE_THRESHOLD`: Similarity threshold for duplicates
+   ```powershell
+   python -m venv .venv
+   .venv\Scripts\activate
+   ```
 
-## 📊 Technical Details
+   3. Install dependencies:
 
-### Image Quality Metrics
+   ```powershell
+   pip install -r requirements.txt
+   ```
 
-- **Sharpness**: Laplacian variance (detects blur)
-- **Brightness**: Mean luminance analysis
-- **Contrast**: Standard deviation of pixel values
-- **Composition**: Face detection and rule-of-thirds
-- **Duplicate Detection**: Perceptual hashing (imagehash)
+   4. Copy the environment template and update credentials:
 
-### Technology Stack
+   ```powershell
+   copy .env.example .env
+   # Edit .env to add LinkedIn client ID/secret and any tuning parameters
+   ```
 
-- **Backend**: FastAPI (Python)
-- **Frontend**: HTML5, CSS3, Vanilla JavaScript
-- **Image Processing**: OpenCV, Pillow, scikit-image
-- **Database**: SQLite with SQLAlchemy ORM
-- **API Integration**: LinkedIn OAuth 2.0
+   5. Run the application:
 
-## 🎨 Design Philosophy
+   ```powershell
+   python main.py
+   ```
 
-Super-polished corporate aesthetic with:
-- Professional color scheme
-- Clean, intuitive interface
-- Responsive design
-- Accessibility considerations
+   6. Open the service at `http://localhost:8000`.
 
-## 📝 API Endpoints
+   Docker (production-like)
 
-- `POST /upload` - Upload event photos
-- `GET /images` - Retrieve processed images
-- `POST /process` - Trigger AI processing
-- `POST /select` - Update image selection
-- `GET /auth/linkedin` - Initiate LinkedIn OAuth
-- `GET /auth/linkedin/callback` - Handle OAuth callback
-- `POST /post/linkedin` - Post selected images to LinkedIn
-- `GET /logs` - Retrieve audit logs
+   1. Ensure Docker and docker-compose are installed.
+   2. Build and start the stack:
 
-## 🔒 Privacy & Security
+   ```powershell
+   docker-compose up --build -d
+   ```
 
-- Images processed locally on your machine
-- No data sent to external services (except LinkedIn API)
-- Audit logs stored in local database
-- OAuth tokens securely managed
+   Configuration
+   -------------
+   Configuration is provided through environment variables. Important settings include:
+   - `LINKEDIN_CLIENT_ID` and `LINKEDIN_CLIENT_SECRET` — OAuth credentials
+   - `QUALITY_THRESHOLD` — minimum quality score (float, default: 0.6)
+   - `MAX_SELECTED_IMAGES` — maximum images selected per event (default: 10)
+   - `BLUR_THRESHOLD` and `DUPLICATE_THRESHOLD` — thresholds for filters
 
-## 🐛 Troubleshooting
+   Refer to `.env.example` for the complete list of variables supported by the
+   application.
 
-**LinkedIn authentication fails:**
-- Verify redirect URI matches exactly in LinkedIn Developer portal
-- Check client ID and secret in `.env`
+   API reference
+   -------------
+   Key HTTP endpoints include:
+   - `POST /upload` — Upload images for processing
+   - `POST /process` — Trigger image analysis and selection
+   - `GET /images` — List processed images with metadata
+   - `POST /select` — Modify the current selection
+   - `GET /auth/linkedin` — Start OAuth flow
+   - `GET /auth/linkedin/callback` — OAuth callback handler
+   - `POST /post/linkedin` — Publish selected images to LinkedIn
+   - `GET /logs` — Retrieve audit logs
 
-**Images not processing:**
-- Ensure images are JPEG/PNG format
-- Check file size limits (50MB total recommended)
+   Implementation details and contract definitions can be found under `app/api/`.
 
-**Poor quality results:**
-- Adjust `QUALITY_THRESHOLD` in `.env`
-- Try with higher resolution images
+   Logging, testing, and troubleshooting
+   -------------------------------------
+   - Processing and posting actions are recorded in the local database; use
+     `GET /logs` to review activity.
+   - Common troubleshooting steps:
+     - OAuth errors: confirm redirect URI and client credentials in LinkedIn
+       developer settings.
+     - Processing errors: verify image formats (JPEG/PNG) and available disk space.
+   - Tests are available under `tests/`. Run them with:
 
-## 📈 Success Metrics
+   ```powershell
+   pytest -q
+   ```
 
-- **Time Saved**: Reduces photo selection time from 2-3 hours to minutes
-- **Quality**: Ensures only professional-grade images are posted
-- **Consistency**: Standardized selection criteria
+   Contributing
+   ------------
+   To contribute:
+   - Open an issue to discuss major changes.
+   - Submit focused pull requests with unit tests where applicable.
+   - Keep changes small and documented.
 
-## 🤝 Contributing
+   License and maintainer
+   ---------------------
+   This project is provided for personal and internal use. For questions or
+   commercial inquiries, contact the maintainer: Mourish Antony.
 
-This is a personal project for friends and staff. Feel free to suggest improvements!
+   Primary files and locations
+   - `main.py` — application entrypoint
+   - `app/` — API and application logic
+   - `backend/` — supplementary backend modules
+   - `requirements.txt` — dependency list
 
-## 📄 License
-
-Free to use for personal and internal purposes.
-
-## 👤 Author
-
-**Mourish Antony**
-
----
-
-Built with ❤️ to save time and boost professional presence on LinkedIn
+   If you would like additional documentation sections (CI/CD, detailed API
+   contracts, architecture diagrams), indicate which areas to expand.
