@@ -206,6 +206,7 @@ function createImageCard(image, index) {
     const card = document.createElement('div');
     card.className = `image-card ${image.is_selected ? 'selected' : ''}`;
     card.dataset.imageIndex = index;
+    card.dataset.imageId = image.id || '';
     
     // Build badges
     let badges = '';
@@ -263,7 +264,10 @@ async function toggleImageSelection(index) {
     
     try {
         // Update on server
-        const response = await fetch(`/api/images/${index + 1}/toggle-select`, {
+        const imageId = image.id || image.db_id || null;
+        if (!imageId) throw new Error('Missing image id');
+
+        const response = await fetch(`/api/images/${imageId}/toggle-select`, {
             method: 'POST'
         });
         

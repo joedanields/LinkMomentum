@@ -10,9 +10,8 @@ import uuid
 from datetime import datetime
 from dotenv import load_dotenv
 
-from backend.database import init_db, get_db, Event, Image, Post, LinkedInToken
-from backend.image_processor import ImageProcessor
-from backend.linkedin_api import LinkedInAPI
+from app.db import init_db, get_db, Event, Image, Post, LinkedInToken
+from app.core import UPLOAD_DIR, STATIC_DIR, TEMPLATE_DIR, image_processor, linkedin_api
 
 # Load environment variables
 load_dotenv()
@@ -25,11 +24,6 @@ UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
 STATIC_DIR = "static"
 TEMPLATE_DIR = "templates"
 
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-os.makedirs(os.path.join(STATIC_DIR, "css"), exist_ok=True)
-os.makedirs(os.path.join(STATIC_DIR, "js"), exist_ok=True)
-os.makedirs(TEMPLATE_DIR, exist_ok=True)
-
 # Mount static files
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
@@ -37,13 +31,9 @@ app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 # Templates
 templates = Jinja2Templates(directory=TEMPLATE_DIR)
 
-# Initialize services
-image_processor = ImageProcessor(
-    quality_threshold=float(os.getenv("QUALITY_THRESHOLD", 0.6)),
-    blur_threshold=float(os.getenv("BLUR_THRESHOLD", 100)),
-    duplicate_threshold=int(os.getenv("DUPLICATE_THRESHOLD", 5))
-)
-linkedin_api = LinkedInAPI()
+# Services (lazy singletons from app.core)
+image_processor = image_processor()
+linkedin_api = linkedin_api()
 
 # Initialize database on startup
 @app.on_event("startup")
@@ -155,6 +145,12 @@ async def upload_images(
             is_selected=is_selected
         )
         db.add(image_record)
+        # Flush to assign primary key ids without committing the whole transaction
+        try:
+            db.flush()
+            saved_files[i]["db_id"] = image_record.id
+        except Exception:
+            saved_files[i]["db_id"] = None
     
     # Update event stats
     event.total_selected = len(processing_results["selected_images"])
@@ -168,6 +164,7 @@ async def upload_images(
         "summary": processing_results["summary"],
         "images": [
             {
+                "id": saved_files[i].get("db_id"),
                 "filename": result["filename"],
                 "url": f"/uploads/event_{event.id}/{saved_files[i]['unique_filename']}",
                 "quality_score": result["quality_score"],
@@ -204,7 +201,7 @@ async def get_event_images(event_id: int, db: Session = Depends(get_db)):
             {
                 "id": img.id,
                 "filename": img.filename,
-                "url": f"/uploads/{img.filepath.replace(UPLOAD_DIR, '').lstrip(os.sep).replace(os.sep, '/')}",
+                "url": f"/uploads/{os.path.relpath(img.filepath, UPLOAD_DIR).replace(os.sep, '/').lstrip('./')}",
                 "quality_score": img.quality_score,
                 "is_blur": img.is_blur,
                 "is_duplicate": img.is_duplicate,
