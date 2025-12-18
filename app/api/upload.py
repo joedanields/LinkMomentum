@@ -7,6 +7,8 @@ from datetime import datetime
 
 from app.core import UPLOAD_DIR, image_processor
 from app.db import SessionLocal, Event, Image
+from app.celery_app import celery
+from app.tasks import process_event_images_task
 
 router = APIRouter()
 
@@ -110,8 +112,12 @@ async def upload_images(background_tasks: BackgroundTasks, files: List[UploadFil
     db.commit()
     db.close()
 
-    # schedule background processing
-    background_tasks.add_task(process_event_images, event.id, saved_files)
+    # schedule background processing: prefer Celery if configured
+    if celery:
+        # convert saved_files to serializable form (dicts already serializable)
+        process_event_images_task.delay(event.id, saved_files)
+    else:
+        background_tasks.add_task(process_event_images, event.id, saved_files)
 
     return {
         "success": True,

@@ -13,3 +13,5 @@ pydantic==2.5.0
 scikit-image==0.22.0
 imagehash==4.3.1
 cryptography==41.0.3
+celery==5.3.0
+redis==4.5.3
